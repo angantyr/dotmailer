@@ -272,7 +272,7 @@ describe DotMailer::Contact do
       end
 
       it 'should return false' do
-        subject.resubscribe(return_url).should be_false
+        subject.resubscribe(return_url).should be false
       end
     end
 
