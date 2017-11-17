@@ -3,7 +3,7 @@ require 'spec_helper'
 describe DotMailer::Client do
   let(:api_user)      { 'john_doe' }
   let(:api_pass)      { 's3cr3t' }
-  let(:api_base_url)  { "https://#{api_user}:#{api_pass}@api.dotmailer.com" }
+  let(:api_base_url)  { "https://api.dotmailer.com" }
   let(:api_path)      { '/some/api/path' }
   let(:api_endpoint)  { "#{api_base_url}/v2#{api_path}" }
 
@@ -13,7 +13,7 @@ describe DotMailer::Client do
     let(:response) { { 'foo' => 'bar' } }
 
     before(:each) do
-      stub_request(:get, api_endpoint).to_return(:body => response.to_json)
+      stub_request(:get, api_endpoint).with(basic_auth: [api_user, api_pass]).to_return(:body => response.to_json)
     end
 
     it 'should GET the endpoint with a JSON accept header' do
