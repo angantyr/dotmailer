@@ -112,8 +112,10 @@ module DotMailer
       status == SUBSCRIBED_STATUS
     end
 
-    def subscribe
-      client.post_json '/contacts',
+    # TODO Should include a address book class
+    # https://developer.dotmailer.com/docs/add-contact-to-address-book
+    def subscribe(path = '/contacts')
+      client.post_json path,
         "email" => email,
         "optInType" => opt_in_type,
         "email_type" => email_type
