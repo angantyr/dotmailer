@@ -118,7 +118,7 @@ module DotMailer
       client.post_json path,
         "email" => email,
         "optInType" => opt_in_type,
-        "email_type" => email_type
+        "emailType" => email_type
     end
 
     def resubscribe(return_url)
