@@ -112,6 +112,13 @@ module DotMailer
       status == SUBSCRIBED_STATUS
     end
 
+    def subscribe
+      client.post_json '/contacts',
+        "email" => email,
+        "optInType" => opt_in_type,
+        "email_type" => email_type
+    end
+
     def resubscribe(return_url)
       return false if subscribed?
 
