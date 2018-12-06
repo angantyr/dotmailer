@@ -252,6 +252,20 @@ describe DotMailer::Contact do
     end
   end
 
+  describe '#subscribe' do
+
+    before(:each) do
+      client.stub :post_json
+    end    
+
+    # https://developer.dotmailer.com/docs/create-contact
+    it 'should call post_json' do
+      client.should_receive(:post_json).with("/contacts", anything)
+      subject.subscribe
+    end
+
+  end
+
   describe '#resubscribe' do
     let(:return_url) { 'some return url' }
     let(:client)     { double 'client' }
