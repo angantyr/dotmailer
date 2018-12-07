@@ -39,6 +39,10 @@ module DotMailer
       Contact.modified_since(self, time)
     end
 
+    def find_address_book_by_id(id)
+      AddressBook.find_by_id self, id
+    end
+
     def find_suppressions_since(time)
       Suppression.suppressed_since(self, time)
     end
