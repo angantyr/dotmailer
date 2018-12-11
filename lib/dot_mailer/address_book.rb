@@ -51,6 +51,10 @@ module DotMailer
       client.delete "/address-books/#{id}"
     end
 
+    def add_contact(contact)
+      client.post_json "/address-books/#{id}/contacts", contact.to_json
+    end
+
     private
     attr_accessor :attributes, :account
 
