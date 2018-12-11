@@ -6,6 +6,34 @@ require 'dot_mailer/opt_in_type'
 
 module DotMailer
   class Contact
+
+    def self.create(account, attributes, data_fields={})
+      params = {}
+      params['email']         = attributes[:email]          || raise('missing :email')
+      params['optInType']     = attributes[:opt_in_type]    || raise('missing :opt_in_type')
+      params['emailType']     = attributes[:email_type]     || raise('missing :email_type')
+      params['dataFields']    = data_fields if data_fields
+
+      response = account.client.post_json('/contacts', params)
+
+      new(account, response)
+    end
+
+    def self.create_with_consent(account, attributes, data_fields, consent_fields)
+      params = {}
+      params['contact'] = {}
+      params['contact']['email']         = attributes[:email]          || raise('missing :email')
+      params['contact']['optInType']     = attributes[:opt_in_type]    || raise('missing :opt_in_type')
+      params['contact']['emailType']     = attributes[:email_type]     || raise('missing :email_type')
+      params['contact']['dataFields']    = data_fields if data_fields
+
+      params['consentFields'] = consent_fields
+      response = account.client.post_json('/contacts/with-consent', params)
+      # NOTE: .create_with_consent returns a different hash than .create
+      # build the contact object from only the contact portion of the hash
+      new(account, response['contact'])
+    end
+
     def self.find_by_email(account, email)
       response = account.client.get("/contacts/#{email}")
 
@@ -76,6 +104,11 @@ module DotMailer
       to_s
     end
 
+    def to_json
+      { 'email': email}
+    end
+
+
     # A wrapper method for accessing data field values by name, e.g.:
     #
     #   contact['FIRSTNAME']
@@ -100,7 +133,7 @@ module DotMailer
       end
     end
 
-    def save
+    def update
       client.put_json "/contacts/#{id}", attributes.merge('dataFields' => data_fields_for_api)
     end
 
@@ -114,13 +147,13 @@ module DotMailer
 
     # TODO Should include a address book class
     # https://developer.dotmailer.com/docs/add-contact-to-address-book
-    def subscribe(path = '/contacts')
-      client.post_json path,
-        "email" => email,
-        "optInType" => opt_in_type,
-        "emailType" => email_type
-    end
-
+    # def subscribe(path = '/contacts')
+    #   client.post_json path,
+    #     "email" => email,
+    #     "optInType" => opt_in_type,
+    #     "emailType" => email_type
+    # end
+    #
     def resubscribe(return_url)
       return false if subscribed?
 

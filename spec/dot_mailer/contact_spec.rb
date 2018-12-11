@@ -4,8 +4,169 @@ describe DotMailer::Contact do
   let(:client)  { double 'client' }
   let(:account) { double 'account', :client => client }
 
+  let(:id)              { 123 }
+  let(:email)           { 'me@example.com' }
+  let(:opt_in_type)     { 'Single' }
+  let(:email_type)      { 'Html' }
+  let(:key)             { double 'key' }
+  let(:value)           { 'some value' }
+  let(:data_fields)     { { key => value } }
+
   describe 'Class' do
     subject { DotMailer::Contact }
+
+    describe '.create' do
+      let(:response) { double 'response' }
+      let(:contact) { double 'contact' }
+
+      # We define a method so we can override keys within
+      # context blocks without redefining other keys
+      def attributes
+        {
+          :email            => email,
+          :opt_in_type      => opt_in_type,
+          :email_type       => email_type
+        }
+      end
+
+      before(:each) do
+        client.stub :post_json => response
+        subject.stub :new => contact
+      end
+
+      # TODO: confirm required fields in dotamiler
+      [
+        :email,
+        :opt_in_type,
+        :email_type
+      ].each do |attribute|
+        context "without specifying #{attribute}" do
+          define_method :attributes do
+            super().except(attribute)
+          end
+
+          it 'should raise an error' do
+            expect { subject.create(account, attributes) }.to \
+              raise_error(RuntimeError, "missing :#{attribute}")
+          end
+        end
+      end
+
+      it 'should call post_json on the client with the correct path' do
+        client.should_receive(:post_json).with('/contacts', anything)
+
+        subject.create(account, attributes, data_fields)
+      end
+
+      it 'should call post_json on the client with the correct parameters' do
+        client.should_receive(:post_json).with('/contacts', {
+          'email'      => email,
+          'optInType'  => opt_in_type,
+          'emailType'  => email_type,
+          'dataFields' => data_fields
+        })
+
+        subject.create(account, attributes, data_fields)
+      end
+
+      it 'should instantiate a new Contact object with the account and response' do
+        subject.should_receive(:new).with(account, response)
+
+        subject.create(account, attributes, data_fields)
+      end
+
+      it 'should return the new Contact object' do
+        subject.create(account, attributes, data_fields).should == contact
+      end
+
+      it 'should return Contact in "subscribed" status' do
+        subject.create(account, attributes, data_fields).should { should be_subscribed }
+      end
+
+    end
+
+    describe '.create_with_consent' do
+      let(:response) { double 'response' }
+      let(:contact) { double 'contact' }
+      let(:consent_fields) { [ fields: [ { "key": "TEXT", "value": 'text' }, { "key": "DATETIMECONSENTED", "value": 'date' }, { "key": "URL", "value": 'url' }, { "key": "IPADDRESS", "value": 'ip' }, { "key": "USERAGENT", "value": 'agent' } ] ] }
+
+
+      # We define a method so we can override keys within
+      # context blocks without redefining other keys
+      def attributes
+        {
+          :email            => email,
+          :opt_in_type      => opt_in_type,
+          :email_type       => email_type
+        }
+      end
+
+      before(:each) do
+        client.stub :post_json => response
+        subject.stub :new => contact
+      end
+
+      [
+        :email,
+        :opt_in_type,
+        :email_type
+      ].each do |attribute|
+        context "without specifying #{attribute}" do
+          define_method :attributes do
+            super().except(attribute)
+          end
+
+          it 'should raise an error' do
+            expect { subject.create(account, attributes) }.to \
+              raise_error(RuntimeError, "missing :#{attribute}")
+          end
+        end
+      end
+
+      it 'should call post_json on the client with the correct path' do
+        allow(response).to receive(:[])
+        client.should_receive(:post_json).with('/contacts/with-consent', anything)
+
+        subject.create_with_consent(account, attributes, data_fields, consent_fields)
+      end
+
+      it 'should call post_json on the client with the correct parameters' do
+        allow(response).to receive(:[])
+        client.should_receive(:post_json).with('/contacts/with-consent',
+          {
+            'contact' => {
+              'email'      => email,
+              'optInType'  => opt_in_type,
+              'emailType'  => email_type,
+              'dataFields' => data_fields
+            },
+            'consentFields' => consent_fields
+          }
+        )
+
+        subject.create_with_consent(account, attributes, data_fields, consent_fields)
+
+      end
+
+      it 'should instantiate a new Contact object with the account and response' do
+        # allow(response).to receive(:[])
+        subject.should_receive(:new).with(account, response)
+
+        subject.create_with_consent(account, attributes, data_fields, consent_fields)
+      end
+
+      it 'should return the new Contact object' do
+        allow(response).to receive(:[])
+        subject.create_with_consent(account, attributes, data_fields, consent_fields).should == contact
+      end
+
+      it 'should return Contact in "subscribed" status' do
+        allow(response).to receive(:[])
+        subject.create_with_consent(account, attributes, data_fields, consent_fields).should { should be_subscribed }
+      end
+
+    end
+
 
     describe '.find_by_email' do
       let(:email)     { 'john.doe@example.com' }
@@ -89,6 +250,7 @@ describe DotMailer::Contact do
       it 'should return the contacts' do
         subject.modified_since(account, time).should == 3.times.map { contact }
       end
+
     end
   end
 
@@ -197,7 +359,7 @@ describe DotMailer::Contact do
     end
   end
 
-  describe '#save' do
+  describe '#update' do
     let(:id)          { '12345' }
     let(:key)         { double 'key' }
     let(:value)       { 'some value' }
@@ -211,7 +373,7 @@ describe DotMailer::Contact do
     it 'should call put_json on the client with the id path' do
       client.should_receive(:put_json).with("/contacts/#{id}", anything)
 
-      subject.save
+      subject.update
     end
 
     it 'should call put_json on the client with the attributes in the correct format' do
@@ -226,7 +388,7 @@ describe DotMailer::Contact do
         ]
       })
 
-      subject.save
+      subject.update
     end
   end
 
@@ -252,20 +414,23 @@ describe DotMailer::Contact do
     end
   end
 
-  describe '#subscribe' do
+  # FIXME: there is no subscribe method on contacts
+  # describe '#subscribe' do
+  #
+  #   before(:each) do
+  #     client.stub :post_json
+  #   end
+  #
+  #   # https://developer.dotmailer.com/docs/create-contact
+  #   it 'should call post_json' do
+  #     client.should_receive(:post_json).with("/contacts", anything)
+  #     subject.subscribe
+  #   end
+  #
+  # end
+  #
 
-    before(:each) do
-      client.stub :post_json
-    end    
-
-    # https://developer.dotmailer.com/docs/create-contact
-    it 'should call post_json' do
-      client.should_receive(:post_json).with("/contacts", anything)
-      subject.subscribe
-    end
-
-  end
-
+  # TODO: add #unsubscribe method
   describe '#resubscribe' do
     let(:return_url) { 'some return url' }
     let(:client)     { double 'client' }
