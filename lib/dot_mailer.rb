@@ -1,5 +1,6 @@
 require 'dot_mailer/exceptions'
 require 'dot_mailer/data_field'
+require 'dot_mailer/consent_fields'
 require 'dot_mailer/contact_import'
 require 'dot_mailer/contact'
 require 'dot_mailer/address_book'
